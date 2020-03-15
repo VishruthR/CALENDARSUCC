@@ -8,8 +8,33 @@ const token = 'Njg3MTAwNTIzNjM5MzQxMDcy.Xmg2Sg.VSGXtlgPaGugPvInFrzbLZPtLGc';
 //set prefix
 const PREFIX = '$';
 
-//create date class
-d = new Date();
+//List of teacher names
+const teacherNames = [ 'Oliveira', 'Stearns', 'Calvert', 'Alvarez', 'Ramos', 'Villagomez', 'Gatewood', 
+                     'Hickman', 'Kickham', 'Lockett', 'Thompson', 'Ton', 'Evans', 'Hope', 'Yanez', 
+                     'Weiker', 'Mathewson', 'Katsman', 'Gillespie', 'Kim', 'Becker', 'Calvert(TOK)', 
+                     'Cuffin', 'Daniels', 'Collomb', 'Thompson(DT)', 'Cabaloue', 'Halligan', 'Martin', 
+                     'Esparza', 'Wang', 'Jiang' ];
+
+//Assignment class
+class Assignment
+{
+    //Constructor
+    constructor( name, date )
+    {
+        this.Name = name;
+        this.Date = date;
+    }
+
+    //getters
+    getName()
+    {
+        return this.Name;
+    }
+    getDate()
+    {
+        return this.Date;
+    }
+}
 
 // Teacher class
 class Teacher 
@@ -36,43 +61,16 @@ class Teacher
     {
         this.Assignments.push( Assignment );
     }
-    removeAssignment( name )
+    removeAssignment( index )
     {
-        //console.log( name );
-        a = this.Assignments;
-        let index = findIndex( a, name );
         //console.log( index );
         this.Assignments.splice( index );
     }
 }
 
-//Assignment class
-class Assignment
-{
-    //Constructor
-    constructor( name, date )
-    {
-        this.Name = name;
-        this.Date = date;
-    }
+//create date class
+d = new Date();
 
-    //getters
-    getName()
-    {
-        return this.Name;
-    }
-    getDate()
-    {
-        return this.Date;
-    }
-}
-
-//List of teacher names
-let teacherNames = [ 'Oliveira', 'Stearns', 'Calvert', 'Alvarez', 'Ramos', 'Villagomez', 'Gatewood', 
-                     'Hickman', 'Kickham', 'Lockett', 'Thompson', 'Ton', 'Evans', 'Hope', 'Yanez', 
-                     'Weiker', 'Mathewson', 'Katsman', 'Gillespie', 'Kim', 'Becker', 'Calvert(TOK)', 
-                     'Cuffin', 'Daniels', 'Collomb', 'Thompson(DT)', 'Cabaloue', 'Halligan', 'Martin', 
-                     'Esparza', 'Wang', 'Jiang' ];
 //Creates teachers array
 let Teachers = [];
 
@@ -83,15 +81,16 @@ function fillTeachers( item )
     Teachers.push( new Teacher( item ) );
 }
 
-
 //Test cmd print
 bot.on('ready', () =>
 {
     console.log( 'This bot is cool' );
     console.log( Teachers[15].getName() );
+
 })
 
 //Fucntion that finds the index of a value in a list
+//Returns a number above the length of the list if the Teacher does not exist
 function findIndex( list, value )
 {
     let i;
@@ -139,7 +138,7 @@ function bubbleSortDate( a )
 }
 
 //Checks if the assignment is legal
-function checkLegal( list, a )
+function checkLegalAdd( list, a )
 {
     daysOfYear = [ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ];
 
@@ -172,7 +171,19 @@ function checkLegal( list, a )
 bot.on('message', message=>
 {
     //Splits string based on spaces
-    let args = message.content.substring( PREFIX.length ).split( " " );
+    let args = message.content.substring( PREFIX.length ).split( ' ' );
+
+    //Finds the index of the requested Teacher
+    //Oops it runs every message but it doesn't matter lol
+    index = findIndex( Teachers, args[1] );
+    if( Teachers[ index ] == undefined )
+    {
+        validIndex = false;
+    }
+    else
+    {
+        validIndex = true;
+    }
 
     //Creates args switch
     switch(args[0])
@@ -193,24 +204,36 @@ bot.on('message', message=>
             //Adds assignment
             a = new Assignment( args[2], args[3] );
 
-            //Checks legality
-            legal = checkLegal( Teachers[ findIndex( Teachers, args[1] ) ].getAssignments(), a );
-            if(  legal == 'good' )
+            //Checks valid teacher
+            if( validIndex )
             {
-                //Sends embed
-                message.channel.send( addEmbed );
-                
-                //Adds the assignment then reorders the list
-                Teachers[ findIndex( Teachers, args[1] ) ].addAssignment( a );
-                bubbleSortDate( Teachers[ findIndex( Teachers, args[1] ) ].getAssignments() );
+                //Checks legality
+                legal = checkLegalAdd( Teachers[ index ].getAssignments(), a );
+                if(  legal == 'good' )
+                {
+                    //Sends embed
+                    message.channel.send( addEmbed );
+                    
+                    //Adds the assignment then reorders the list
+                    Teachers[ index ].addAssignment( a );
+                    bubbleSortDate( Teachers[ index ].getAssignments() );
+                }
+                else if( legal == 'date' )
+                {
+                    message.channel.send( 'Double-check that your date is a valid one' );
+                }
+                else if( legal == 'repeat' )
+                {
+                    message.channel.send( 'Double-check that this assignment has not already been posted.');
+                }
+                else if( !validIndex )
+                {
+                    message.channel.send( 'Double-check your Teacher\'s name' );
+                }
             }
-            else if( legal == 'date' )
+            else
             {
-                message.channel.send( "Double-check that your date is a valid one" );
-            }
-            else if( legal == 'repeat' )
-            {
-                message.channel.send( "Double-check that this assignment has not already been posted." );
+                message.channel.send( 'Double-check your Teacher\'s name' );
             }
 
             break;
@@ -222,10 +245,27 @@ bot.on('message', message=>
                 .addField( 'Teacher', args[1] )
                 .addField( 'Assignment', args[2] )
                 .addField( 'Due Date', args[3] );
-            message.channel.send( removeEmbed );
-
-            //Removes assignment
-            Teachers[ findIndex( Teachers, args[1] ) ].removeAssignment( args[2] );
+            
+            //Checks valid teacher
+            if( validIndex )
+            {   
+                //Checks valid assignment
+                a = Teachers[ index ].getAssignments();
+                if( a[ findIndex( a, args[2] ) ] != undefined )
+                {
+                    //Removes assignment
+                    Teachers[ index ].removeAssignment( args[2] );
+                    message.channel.send( removeEmbed );
+                }
+                else
+                {
+                    message.channel.send( 'Double-check that your assignment is a valid one' );
+                }
+            }
+            else
+            {
+                message.channel.send( 'Double-check your Teacher\'s name' );
+            }
 
             break;
         //Views all the assignments of a teacher
@@ -234,15 +274,22 @@ bot.on('message', message=>
             const viewEmbed = new Discord.MessageEmbed()
                 .setTitle( 'Viewing Assignment' );
 
-            //Adds all assignments of a certain teacher onto the embed
-            a = Teachers[ findIndex( Teachers, args[1] ) ].getAssignments();
-            for( i = 0; i < a.length; i++ )
+            if( validIndex )
             {
-                num = i + 1;
-                viewEmbed.addField( num, a[i].getDate() + ':   ' + a[i].getName() );
+                //Adds all assignments of a certain teacher onto the embed
+                a = Teachers[ index ].getAssignments();
+                for( i = 0; i < a.length; i++ )
+                {
+                    num = i + 1;
+                    viewEmbed.addField( num, a[i].getDate() + ':   ' + a[i].getName() );
+                }
+
+                message.channel.send( viewEmbed );
             }
-            
-            message.channel.send( viewEmbed );
+            else
+            {
+                message.channel.send( 'Double-check your Teacher\'s name' );
+            }
 
             break;
     }
