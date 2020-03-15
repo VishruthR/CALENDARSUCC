@@ -170,8 +170,14 @@ function checkLegalAdd( list, a )
 //Recieves message and coordinates output
 bot.on('message', message=>
 {
-    //Splits string based on spaces
+    //Splits string into it's functional parts
     let args = message.content.substring( PREFIX.length ).split( ' ' );
+    
+    //Checks if the prefix is valid, if not it sets args[0] to a random string
+    if( message.content.substring( 0, PREFIX.length ) != PREFIX )
+    {
+        args[0] = 'oop';
+    }
 
     //Finds the index of the requested Teacher
     //Oops it runs every message but it doesn't matter lol
@@ -243,9 +249,8 @@ bot.on('message', message=>
             const removeEmbed = new Discord.MessageEmbed()
                 .setTitle( 'Removing Assignment' )
                 .addField( 'Teacher', args[1] )
-                .addField( 'Assignment', args[2] )
-                .addField( 'Due Date', args[3] );
-            
+                .addField( 'Assignment', args[2] );
+
             //Checks valid teacher
             if( validIndex )
             {   
