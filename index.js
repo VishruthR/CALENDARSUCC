@@ -6,8 +6,13 @@ const bot = new Discord.Client();
 const token = 'Njg3MTAwNTIzNjM5MzQxMDcy.Xmg2Sg.VSGXtlgPaGugPvInFrzbLZPtLGc';
 
 //set prefix
-const PREFIX = '$';
+const PREFIX = 'c!';
 
+/*
+-------------
+|CODE SET UP|
+-------------
+*/
 //List of teacher names
 const teacherNames = [ 'Oliveira', 'Stearns', 'Calvert', 'Alvarez', 'Ramos', 'Villagomez', 'Gatewood', 
                      'Hickman', 'Kickham', 'Lockett', 'Thompson', 'Ton', 'Evans', 'Hope', 'Yanez', 
@@ -63,13 +68,9 @@ class Teacher
     }
     removeAssignment( index )
     {
-        //console.log( index );
         this.Assignments.splice( index );
     }
 }
-
-//create date class
-d = new Date();
 
 //Creates teachers array
 let Teachers = [];
@@ -86,8 +87,91 @@ bot.on('ready', () =>
 {
     console.log( 'This bot is cool' );
     console.log( Teachers[15].getName() );
-
+    readText();
 })
+
+/*
+--------------------------
+|READING AND WRITING CODE|
+--------------------------
+*/
+
+//Imports necessary class
+fs = require( "fs" );
+
+//Writes the text
+function writeText()
+{
+    //Creates the text block
+    let text = '';
+
+    //Runs through the Teacher array, creating a text block of assignments for each teacher
+    for( let i = 0; i < Teachers.length; i++ )
+    {
+        //Adds an assignment's name and due date, seperates name and due date so you can save those values
+        //Seperates each assignment by a space so you can splice by assignment
+        a = Teachers[i].getAssignments();
+        for( let j = 0; j < a.length; a++ )
+        {
+            text = text.concat( a[j].getName(), '~', a[j].getDate(), ' ' );
+        }
+
+        //Concatenates the starting part of the string, this allows you to splice based on Teacher
+        text = text.concat( '^' );
+    }
+
+    fs.writeFile( 'data.txt', text, function(err)
+    {
+        if( err)
+        {
+            return console.error( err );
+        }
+    });
+}
+
+//Reads the text and updates the assignments of each teacher
+function readText()
+{
+    //Reads data and saves in a variable called 'data'
+    fs.readFile('data.txt', function (err, data )
+    {
+        if (err)
+        {
+           return console.error(err);
+        }
+        
+        data = data.toString();
+        console.log( data );
+        
+        t = data.split( '^' );
+        for( let i = 0; i < t.length; i++ )
+        {
+            a = t[i].split( ' ' );
+            if( t[i] == '' )
+            {
+                a = [];
+            }
+
+            for( let j = 0; j < a.length - 1; j++ )
+            {
+                parts = a[j].split( '~' );
+                assignment = new Assignment( parts[0], parts[1] );
+
+                //Makes sure this assignment is not repeated
+                if( checkLegalAdd( Teachers[i].getAssignments(), assignment ) == 'good' );
+                {
+                    Teachers[i].addAssignment( assignment );
+                }
+            }
+        }
+    });
+}
+
+/*
+---------------------------------
+|VARIOUS MISCELLANEOUS FUNCTIONS|
+---------------------------------
+*/
 
 //Fucntion that finds the index of a value in a list
 //Returns a number above the length of the list if the Teacher does not exist
@@ -110,9 +194,9 @@ function findIndex( list, value )
 function bubbleSortDate( a )
 {
     n = a.length;
-    for( i = 0; i < n - 1; i++ )
+    for( let i = 0; i < n - 1; i++ )
     {
-        for( j = 0; j < n - i - 1; j++ )
+        for( let j = 0; j < n - i - 1; j++ )
         {
             x = a[j].getDate().split( '/' );
             y = a[ j + 1 ].getDate().split( '/' );
@@ -155,7 +239,7 @@ function checkLegalAdd( list, a )
     }
 
     //Checks if the assignment is a repeat
-    for( i = 0; i < list.length; i++ )
+    for( let i = 0; i < list.length; i++ )
     {
         if( list[i].getName() == a.getName() )
         {
@@ -166,6 +250,12 @@ function checkLegalAdd( list, a )
 
     return 'good';
 }
+
+/*
+----------------
+|MESSAGE READER|
+----------------
+*/
 
 //Recieves message and coordinates output
 bot.on('message', message=>
@@ -178,10 +268,16 @@ bot.on('message', message=>
     {
         args[0] = 'oop';
     }
+    //Only reads the file if the bot was called on
+    else
+    {
+        readText();
+    }
 
     //Finds the index of the requested Teacher
     //Oops it runs every message but it doesn't matter lol
     index = findIndex( Teachers, args[1] );
+    
     if( Teachers[ index ] == undefined )
     {
         validIndex = false;
@@ -283,7 +379,7 @@ bot.on('message', message=>
             {
                 //Adds all assignments of a certain teacher onto the embed
                 a = Teachers[ index ].getAssignments();
-                for( i = 0; i < a.length; i++ )
+                for( let i = 0; i < a.length; i++ )
                 {
                     num = i + 1;
                     viewEmbed.addField( num, a[i].getDate() + ':   ' + a[i].getName() );
@@ -297,6 +393,12 @@ bot.on('message', message=>
             }
 
             break;
+    }
+
+    if( args[0] != 'oop' )
+    {
+        //Rewrites into the file
+        writeText();
     }
 })
 
